@@ -152,14 +152,14 @@ def test_extract_audio_invalid_format(sample_clip: Path, workdir: Path):
 def test_transcode_then_concat(sample_clip: Path, workdir: Path):
     a = workdir / "a.mp4"
     b = workdir / "b.mp4"
-    out_a = asyncio.run(transcode({
+    out_a = asyncio.run(transcode.handler({
         "source_path": str(sample_clip),
         "output_path": str(a),
         "codec": "h264",
         "preset": "veryfast",
         "crf": 23,
     }))
-    out_b = asyncio.run(transcode({
+    out_b = asyncio.run(transcode.handler({
         "source_path": str(sample_clip),
         "output_path": str(b),
         "codec": "h264",
@@ -170,7 +170,7 @@ def test_transcode_then_concat(sample_clip: Path, workdir: Path):
     assert _payload(out_b)["status"] == "ok"
 
     joined = workdir / "joined.mp4"
-    out_c = asyncio.run(concat_clips({
+    out_c = asyncio.run(concat_clips.handler({
         "input_paths": [str(a), str(b)],
         "output_path": str(joined),
     }))

@@ -1,0 +1,32 @@
+{
+  "name": "edit-desktop",
+  "version": "0.1.0",
+  "description": "Ed.it — desktop AI video editing agent",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.naomiivie.edit",
+    "productName": "Ed.it",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "preload.js", "splash.html", "assets/**/*"],
+    "extraResources": [
+      { "from": "../src", "to": "edit-src", "filter": ["**/*"] },
+      { "from": "../pyproject.toml", "to": "pyproject.toml" }
+    ],
+    "mac": {
+      "category": "public.app-category.video",
+      "target": ["dmg", "zip"],
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}

@@ -15,9 +15,17 @@ tmp/
 *.log
 node_modules/
 
-# Local agent state — user uploads + session transcripts
+# Local agent state — user uploads + session transcripts + memory db
 Ed.it Projects/
 .claude-sessions/
+memory.db
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # OS
 Thumbs.db
+# Electron
+electron/node_modules/
+electron/dist/
