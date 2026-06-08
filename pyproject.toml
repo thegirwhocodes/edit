@@ -1,0 +1,38 @@
+[project]
+name = "edit"
+version = "0.1.0"
+description = "Ed.it — desktop AI video editing agent (M1: CLI)"
+requires-python = ">=3.11"
+dependencies = [
+    "claude-agent-sdk>=0.1.0",
+    "anthropic>=0.40",
+    "google-generativeai>=0.8",
+    "python-dotenv>=1.0",
+    "rich>=13.0",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "python-multipart>=0.0.9",
+]
+
+[project.scripts]
+edit = "edit.cli:main"
+edit-web = "edit.server:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+edit = ["static/*.html", "static/*.css", "static/*.js"]
+
+# Point IDE type checkers (ty, pyright, pylance) at the local venv instead
+# of the system Python interpreter.
+[tool.ty.environment]
+python = ".venv"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"

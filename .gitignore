@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.local
+.DS_Store
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Generated outputs during dev
+out/
+tmp/
+*.log
+node_modules/
+
+# Local agent state — user uploads + session transcripts
+Ed.it Projects/
+.claude-sessions/
+
+# OS
+Thumbs.db

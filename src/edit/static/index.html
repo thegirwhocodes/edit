@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ed.it</title>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --panel: #131316;
+    --panel-2: #1a1a1f;
+    --line: #26262d;
+    --text: #ececf1;
+    --muted: #8a8a99;
+    --dim: #5a5a66;
+    --accent: #ffd28a;
+    --accent-2: #ff9a5a;
+    --good: #82e0a4;
+    --bad: #ff8a8a;
+    --thinking: #a48cff;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14.5px/1.5 -apple-system, "SF Pro Text", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+  }
+  header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo {
+    font-family: "SF Pro Display", system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-size: 17px;
+  }
+  .logo .dot { color: var(--accent); }
+  .root-pill {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-family: "SF Mono", ui-monospace, monospace;
+  }
+
+  main {
+    overflow-y: auto;
+    padding: 24px 20px 8px;
+    max-width: 880px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .greeting {
+    color: var(--muted);
+    margin-bottom: 20px;
+    font-size: 15px;
+  }
+  .greeting strong { color: var(--text); font-weight: 500; }
+
+  .stream { display: flex; flex-direction: column; gap: 10px; }
+  .msg {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 12px 14px;
+  }
+  .msg.brief {
+    background: transparent;
+    border-color: var(--dim);
+    color: var(--muted);
+    font-style: italic;
+  }
+  .msg.text { background: var(--panel-2); }
+  .msg.thinking {
+    background: transparent;
+    border-color: transparent;
+    color: var(--thinking);
+    font-style: italic;
+    opacity: 0.75;
+    padding: 4px 14px;
+    font-size: 13px;
+  }
+  .msg.thinking::before { content: "✱ "; opacity: 0.7; }
+
+  .tool {
+    background: var(--panel);
+    border-color: var(--line);
+    padding: 10px 14px;
+    font-family: "SF Mono", ui-monospace, monospace;
+    font-size: 12.5px;
+  }
+  .tool .head { display: flex; align-items: center; gap: 8px; }
+  .tool .name { color: var(--accent); }
+  .tool .args { color: var(--dim); margin-top: 4px; white-space: pre-wrap; word-break: break-word; }
+  .tool .result { margin-top: 6px; }
+  .tool .result.ok { color: var(--good); }
+  .tool .result.err { color: var(--bad); }
+  .tool .spinner {
+    display: inline-block; width: 10px; height: 10px;
+    border: 2px solid var(--dim); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .check { color: var(--good); }
+  .x { color: var(--bad); }
+
+  .download {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 8px;
+    padding: 8px 14px;
+    background: var(--accent); color: #1a1209;
+    border-radius: 8px; font-weight: 600;
+    text-decoration: none; font-size: 13px;
+  }
+  .download:hover { background: var(--accent-2); color: #fff; }
+
+  .done-bar {
+    margin-top: 16px; padding: 10px 14px;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: 12.5px;
+    font-family: "SF Mono", ui-monospace, monospace;
+  }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 14px 20px 18px;
+    background: var(--bg);
+  }
+  .composer {
+    max-width: 880px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .drop {
+    border: 1.5px dashed var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    color: var(--muted);
+    text-align: center;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--panel); color: var(--text); }
+  .drop strong { color: var(--text); }
+  .drop .uploaded { color: var(--good); }
+
+  .row { display: flex; gap: 8px; }
+  input[type="text"], textarea {
+    flex: 1;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font: inherit;
+    resize: none;
+  }
+  input[type="text"]:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  button {
+    background: var(--accent); color: #1a1209;
+    border: 0; border-radius: 10px;
+    padding: 0 18px; font: inherit; font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { background: var(--accent-2); color: #fff; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .empty {
+    color: var(--dim);
+    text-align: center;
+    margin-top: 40px;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">Ed<span class="dot">.</span>it</span>
+  <span id="root" class="root-pill">…</span>
+</header>
+
+<main id="main">
+  <div class="greeting" id="greeting">
+    <strong>Hey Naomi.</strong> Drop a clip, tell me what to do.
+  </div>
+  <div class="stream" id="stream"></div>
+  <div class="empty" id="empty">No edits yet. Try: <em>"trim the first 30 seconds into out/teaser.mp4"</em></div>
+</main>
+
+<footer>
+  <form class="composer" id="composer">
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept="video/*" hidden />
+      <span id="dropLabel"><strong>Drop a video</strong> or click to choose</span>
+    </label>
+    <div class="row">
+      <input type="text" id="prompt" placeholder='e.g. "trim 0:05 to 0:30 into out/teaser.mp4"' autofocus />
+      <button id="send" type="submit">Run</button>
+    </div>
+  </form>
+</footer>
+
+<script>
+const stream = document.getElementById('stream');
+const empty = document.getElementById('empty');
+const main = document.getElementById('main');
+const dropEl = document.getElementById('drop');
+const dropLabel = document.getElementById('dropLabel');
+const fileInput = document.getElementById('file');
+const promptInput = document.getElementById('prompt');
+const sendBtn = document.getElementById('send');
+const composer = document.getElementById('composer');
+const greeting = document.getElementById('greeting');
+
+let uploadedPath = null;       // server-relative path of last upload
+const toolEls = new Map();     // tool_use_id → DOM element
+
+// --- Greeting (time-aware) ---
+(function setGreeting() {
+  const h = new Date().getHours();
+  let g = "Hello";
+  if (h < 5) g = "Up late";
+  else if (h < 12) g = "Good morning";
+  else if (h < 17) g = "Good afternoon";
+  else if (h < 21) g = "Good evening";
+  else g = "Hey";
+  greeting.innerHTML = `<strong>${g}, Naomi.</strong> Drop a clip, tell me what to do.`;
+})();
+
+// --- Health / root pill ---
+fetch('/health').then(r => r.json()).then(h => {
+  document.getElementById('root').textContent = h.project_root.replace(/^.*\//, '~/…/') || 'unknown';
+});
+
+// --- File drop / pick ---
+['dragenter','dragover'].forEach(ev =>
+  dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.add('over'); }));
+['dragleave','drop'].forEach(ev =>
+  dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.remove('over'); }));
+
+dropEl.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f) uploadFile(f);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) uploadFile(e.target.files[0]);
+});
+
+async function uploadFile(file) {
+  dropLabel.innerHTML = `Uploading <strong>${file.name}</strong>…`;
+  const fd = new FormData();
+  fd.append('file', file);
+  const resp = await fetch('/upload', { method: 'POST', body: fd });
+  if (!resp.ok) {
+    dropLabel.innerHTML = `<span style="color:var(--bad)">upload failed</span> — try again`;
+    return;
+  }
+  const data = await resp.json();
+  uploadedPath = data.path;
+  dropLabel.innerHTML = `<span class="uploaded">✓</span> <strong>${file.name}</strong> · ${(data.size_bytes / 1e6).toFixed(1)} MB`;
+}
+
+// --- Submit ---
+composer.addEventListener('submit', async e => {
+  e.preventDefault();
+  const text = promptInput.value.trim();
+  if (!text) return;
+
+  empty.style.display = 'none';
+  sendBtn.disabled = true;
+  promptInput.value = '';
+
+  // Show the brief
+  addMsg('brief', uploadedPath ? `📎 ${uploadedPath}\n${text}` : text);
+
+  await runAgent(text, uploadedPath);
+
+  sendBtn.disabled = false;
+  promptInput.focus();
+});
+
+async function runAgent(prompt, file) {
+  const fd = new FormData();
+  fd.append('prompt', prompt);
+  if (file) fd.append('file', file);
+
+  const resp = await fetch('/chat', { method: 'POST', body: fd });
+  if (!resp.ok || !resp.body) {
+    addMsg('text', `error: ${resp.status} ${resp.statusText}`);
+    return;
+  }
+
+  // Parse SSE stream manually
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+
+    let idx;
+    while ((idx = buf.indexOf('\n\n')) >= 0) {
+      const raw = buf.slice(0, idx);
+      buf = buf.slice(idx + 2);
+      handleSSE(raw);
+    }
+  }
+}
+
+function handleSSE(raw) {
+  let event = 'message', data = '';
+  for (const line of raw.split('\n')) {
+    if (line.startsWith('event: ')) event = line.slice(7);
+    else if (line.startsWith('data: ')) data += line.slice(6);
+  }
+  let parsed = {};
+  try { parsed = JSON.parse(data); } catch {}
+  handleEvent(event, parsed);
+}
+
+let currentTextEl = null;
+
+function handleEvent(event, data) {
+  if (event === 'brief') return;  // already shown
+  if (event === 'thinking') {
+    addMsg('thinking', data.text);
+    currentTextEl = null;
+  } else if (event === 'text') {
+    if (!currentTextEl) currentTextEl = addMsg('text', data.text);
+    else currentTextEl.textContent += data.text;
+  } else if (event === 'tool_start') {
+    currentTextEl = null;
+    const el = document.createElement('div');
+    el.className = 'msg tool';
+    el.innerHTML = `
+      <div class="head"><span class="spinner"></span> <span class="name">${data.name}</span></div>
+      <div class="args">${escapeHtml(JSON.stringify(data.args, null, 0))}</div>
+      <div class="result"></div>
+    `;
+    stream.appendChild(el);
+    toolEls.set(data.id, el);
+    scrollDown();
+  } else if (event === 'tool_result') {
+    const el = toolEls.get(data.id);
+    if (!el) return;
+    const spinner = el.querySelector('.spinner');
+    if (spinner) spinner.outerHTML = renderStatusIcon(data.payload);
+    const resultEl = el.querySelector('.result');
+    resultEl.innerHTML = renderToolResult(data.payload);
+    scrollDown();
+  } else if (event === 'done') {
+    currentTextEl = null;
+    const bits = [];
+    if (data.cost_usd != null) bits.push(`cost $${data.cost_usd.toFixed(4)}`);
+    if (data.input_tokens) bits.push(`${data.input_tokens} in / ${data.output_tokens} out`);
+    const el = document.createElement('div');
+    el.className = 'done-bar';
+    el.textContent = bits.join(' · ') || 'done';
+    stream.appendChild(el);
+    scrollDown();
+  } else if (event === 'error') {
+    currentTextEl = null;
+    const el = document.createElement('div');
+    el.className = 'msg';
+    el.style.borderColor = 'var(--bad)';
+    el.style.color = 'var(--bad)';
+    el.textContent = `error: ${data.message}`;
+    stream.appendChild(el);
+    scrollDown();
+  }
+}
+
+function renderStatusIcon(payload) {
+  if (payload && payload.status === 'ok') return '<span class="check">✓</span>';
+  if (payload && payload.status === 'error') return '<span class="x">✗</span>';
+  return '<span class="check">✓</span>';
+}
+
+function renderToolResult(payload) {
+  if (!payload) return '';
+  if (payload.status === 'error') {
+    let html = `<span class="err">${escapeHtml(payload.code || 'error')}</span> ${escapeHtml(payload.message || '')}`;
+    if (payload.hint) html += `<br><span style="opacity:0.7">hint: ${escapeHtml(payload.hint)}</span>`;
+    return html;
+  }
+  // Find the most informative field
+  let head = payload.output_path || payload.answer || '';
+  if (!head && payload.duration_sec != null) head = `duration ${payload.duration_sec}s`;
+  if (!head && payload.width) head = `${payload.width}×${payload.height}`;
+
+  let html = `<span class="ok">${escapeHtml(String(head).slice(0, 280))}</span>`;
+
+  // Render download link if output_path exists
+  if (payload.output_path) {
+    html += `<br><a class="download" href="/download?path=${encodeURIComponent(payload.output_path)}" target="_blank">↓ Download ${escapeHtml(payload.output_path.split('/').pop())}</a>`;
+  }
+  return html;
+}
+
+function addMsg(cls, text) {
+  const el = document.createElement('div');
+  el.className = 'msg ' + cls;
+  el.textContent = text;
+  stream.appendChild(el);
+  scrollDown();
+  return el;
+}
+
+function scrollDown() {
+  requestAnimationFrame(() => { main.scrollTop = main.scrollHeight; });
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+</script>
+</body>
+</html>
