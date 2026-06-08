@@ -21,9 +21,13 @@
     "mac": {
       "category": "public.app-category.video",
       "target": ["dmg", "zip"],
-      "hardenedRuntime": false,
-      "gatekeeperAssess": false
-    }
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "identity": "Apple Development: naomiivie06@gmail.com (FL5RL9AY66)",
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist"
+    },
+    "afterSign": null
   },
   "devDependencies": {
     "electron": "^33.0.0",

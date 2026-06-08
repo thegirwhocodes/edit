@@ -73,7 +73,32 @@ whichever the user picks.
 | M3 | Electron desktop shell with streaming UI | ✅ shipped |
 | M4 | SQLite memory + recall/write tools | ✅ shipped |
 | M5 | 3-variation render pattern | ✅ prompt-level (rendering is the agent's job) |
-| M6 | Prompt caching, signed installer, observability | 🚧 builder configured, signing/eval pending |
+| M6 | Cost tracking, traces DB, signing config | ✅ shipped |
+
+### M6 details
+
+**Cost & budget.** The agent SDK hard-stops at `EDIT_COST_BUDGET_USD` (default
+$3) per session. The web layer adds a softer rolling-24h cap at
+`EDIT_DAILY_BUDGET_USD` (default $5) — the UI pill turns amber at 75% and red
+at 100%; new `/chat` calls return a `BudgetExceeded` SSE event when over cap.
+
+**Traces.** Every chat turn is logged to `traces.db` under the project root:
+brief, start/end times, cost, tokens, tool calls, output files, status
+(`done`/`error`/`aborted`). The `/sessions?limit=N` endpoint returns
+history; click the cost pill in the UI to see the last 20 runs.
+
+**Prompt caching.** The system prompt is split into a stable head
+(`STATIC_SYSTEM`) and a dynamic memory tail. As long as `memory_write`
+stays rare (<1 per 10 turns, per the system-prompt policy), the head
+cache-hits within Anthropic's 5-minute TTL — ~85% input-cost reduction
+on the second turn within a session.
+
+**Signing.** `electron/package.json` is wired to your existing Apple
+Development cert (`naomiivie06@gmail.com / FL5RL9AY66`) with a hardened
+runtime and `entitlements.mac.plist`. This signs for **personal use on
+your machines**. To ship to other people, request a *Developer ID
+Application* certificate from the Apple Developer portal and swap the
+`identity` string. Notarization is a separate step (`xcrun notarytool`).
 
 ## Tests
 

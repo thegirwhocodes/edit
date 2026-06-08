@@ -2,8 +2,15 @@
 
 Kept short on purpose — every token here is paid on every turn. The
 production-engineering research is explicit: long system prompts pollute
-turns. Stable content first, then the dynamic memory block, then a cache
-breakpoint (set in agent.py).
+turns.
+
+**Caching strategy:** Anthropic's prompt cache (5-min TTL, 10% input cost
+on hit) keys on byte-identical prefixes. `STATIC_SYSTEM` below is the
+stable head; the dynamic memory block is appended after. As long as
+memory changes are rare (write policy aims for <1 write per 10 turns),
+the bulk of the prompt cache-hits across a session. The SDK applies
+`cache_control` to system prompts automatically when `system_prompt`
+is set in `ClaudeAgentOptions`.
 """
 
 from . import memory

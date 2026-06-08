@@ -44,8 +44,13 @@
     font-size: 17px;
   }
   .logo .dot { color: var(--accent); }
-  .root-pill {
+  .pills {
     margin-left: auto;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .pill {
     font-size: 12px;
     color: var(--muted);
     background: var(--panel);
@@ -53,6 +58,24 @@
     padding: 4px 10px;
     border-radius: 999px;
     font-family: "SF Mono", ui-monospace, monospace;
+  }
+  .pill.cost { cursor: pointer; }
+  .pill.cost:hover { color: var(--text); border-color: var(--accent); }
+  .pill.cost.warn { color: var(--accent-2); border-color: var(--accent-2); }
+  .pill.cost.danger { color: var(--bad); border-color: var(--bad); }
+  .pill.cost .bar {
+    display: inline-block;
+    width: 28px; height: 5px;
+    border-radius: 3px;
+    background: var(--line);
+    margin-left: 6px;
+    vertical-align: middle;
+    overflow: hidden;
+  }
+  .pill.cost .bar > span {
+    display: block; height: 100%;
+    background: var(--accent);
+    transition: width 0.3s;
   }
 
   main {
@@ -194,7 +217,10 @@
 
 <header>
   <span class="logo">Ed<span class="dot">.</span>it</span>
-  <span id="root" class="root-pill">…</span>
+  <div class="pills">
+    <span id="cost" class="pill cost" title="today's spend · click for session history">$0.00 / —<span class="bar"><span style="width:0"></span></span></span>
+    <span id="root" class="pill">…</span>
+  </div>
 </header>
 
 <main id="main">
@@ -249,6 +275,35 @@ const toolEls = new Map();     // tool_use_id → DOM element
 fetch('/health').then(r => r.json()).then(h => {
   document.getElementById('root').textContent = h.project_root.replace(/^.*\//, '~/…/') || 'unknown';
 });
+
+// --- Budget pill ---
+const costPill = document.getElementById('cost');
+async function refreshBudget() {
+  try {
+    const b = await (await fetch('/budget')).json();
+    const pct = b.cap_usd > 0 ? Math.min(100, (b.today_usd / b.cap_usd) * 100) : 0;
+    const cls = pct >= 100 ? 'danger' : pct >= 75 ? 'warn' : '';
+    costPill.className = 'pill cost ' + cls;
+    costPill.firstChild.nodeValue = `$${b.today_usd.toFixed(2)} / $${b.cap_usd.toFixed(2)}`;
+    const bar = costPill.querySelector('.bar > span');
+    if (bar) bar.style.width = pct + '%';
+    costPill.title = `today: $${b.today_usd.toFixed(4)} across ${b.today_count} runs · lifetime: $${b.lifetime_usd.toFixed(4)} across ${b.lifetime_count}`;
+  } catch (_) {}
+}
+refreshBudget();
+costPill.addEventListener('click', showSessions);
+
+async function showSessions() {
+  const data = await (await fetch('/sessions?limit=20')).json();
+  const lines = (data.traces || []).map(t => {
+    const when = new Date(t.started_at * 1000).toLocaleString();
+    const cost = (t.cost_usd ?? 0).toFixed(4);
+    const dur = t.ended_at ? `${t.ended_at - t.started_at}s` : 'running';
+    const status = t.status === 'error' ? '✗' : t.status === 'done' ? '✓' : '…';
+    return `${status} ${when} · $${cost} · ${dur} · ${t.tool_calls} tools\n   "${(t.brief || '').slice(0, 80)}"`;
+  });
+  alert(lines.join('\n\n') || 'no sessions yet');
+}
 
 // --- File drop / pick ---
 ['dragenter','dragover'].forEach(ev =>
@@ -378,6 +433,7 @@ function handleEvent(event, data) {
     el.textContent = bits.join(' · ') || 'done';
     stream.appendChild(el);
     scrollDown();
+    refreshBudget();
   } else if (event === 'error') {
     currentTextEl = null;
     const el = document.createElement('div');
