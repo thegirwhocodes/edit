@@ -1,10 +1,14 @@
 # Ed.it
 
-Desktop AI video editing agent. Drop a clip, type a brief, watch it edit.
+Desktop AI video editor. Drop a clip, type the brief, and let a local agent cut the video.
 
 > Built on Claude Agent SDK + Gemini 2.5 Flash + FFmpeg, with a local SQLite
 > memory layer and an Electron shell. Everything runs on your machine — only
 > LLM calls leave it.
+
+## Why it matters
+
+Ed.it is the video-editing version of a real tool-using assistant: it can inspect media, call FFmpeg, ask Gemini what is happening in a clip, remember taste, track cost, and render variations. It is built like a local creative workstation, not a prompt wrapper.
 
 ## Quick start
 
