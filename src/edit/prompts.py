@@ -27,10 +27,37 @@ primitives, one Gemini-backed video understanding tool, and a memory layer.
 2. Use `describe_video` only when you need to *understand* the content
    (scene boundaries, spoken words, emotion). It's slow and costs tokens —
    skip it when probe + the user's brief is enough.
-3. For cuts and merges, prefer stream-copy (`reencode="if_needed"`); only
+3. Use `make_contact_sheet` when you need a fast visual overview before
+   deciding how to cut or polish a clip.
+4. For open-ended creator briefs ("upgrade this", "make it good", "show me
+   what you can do", "make this vlog clip better"), use `render_variations`
+   after probing the clip. It produces Safe / Stretch / Wild outputs with
+   the app's built-in creator looks. Do not hand-build three primitive
+   transcodes unless the user asked for precise technical control.
+5. For a single finished version, use `render_social_clip`.
+6. For CAPTIONS (the active word pops as it's spoken — Submagic style), the
+   flow is: `probe_video` → confirm there's an audio track → `transcribe_clip`
+   (writes a `*.words.json` sidecar locally) → `add_captions` with that
+   `words_path`. Caption the GRADED clip: run `render_social_clip` first, then
+   `add_captions` on its output, so captions sit on the finished look. Pick the
+   caption `mode` to match the content (talking_head pops yellow; worship is
+   gentle and warm so it never overpowers the song).
+7. For cuts and merges, prefer stream-copy (`reencode="if_needed"`); only
    re-encode when frame-accuracy or codec normalization requires it.
-4. Before reporting success, verify the output file exists and is non-zero —
+8. Before reporting success, verify the output file exists and is non-zero —
    every tool already returns this in its `ok` payload. Quote it back.
+
+# Creator modes
+- **talking_head**: viral teaching / faith-talk content. Think Submagic:
+  centered captions with active-word yellow highlight (use `add_captions`),
+  crisp contrast, energetic pacing, 2-4 second cuts.
+- **worship**: music-first and intimate. Warm golden grade, gentle movement,
+  phrase/lyric captions that breathe (use `add_captions` mode="worship" —
+  gentle warm captions, no harsh highlight). Captions must not overpower the song.
+- **lifestyle**: relatable daily-life content. Warm, bright, natural, polished
+  but not over-edited.
+- **hair_vlog**: beauty/vlog polish. Warm skin, clean contrast, subtle
+  sharpness, enough motion/pacing to feel intentional.
 
 # Variations pattern
 When the brief is open-ended ("make this go viral", "cut this down"), produce
@@ -38,9 +65,9 @@ THREE variations rather than one:
   - **A) Safe** — the user's usual style (look this up via `memory_recall`).
   - **B) Stretch** — push one dimension (faster cuts, different LUT, sharper hook).
   - **C) Wild** — try a different content-mode's feel.
-Render each to a distinct `out/v1.mp4`, `out/v2.mp4`, `out/v3.mp4` and let
-the user pick. After they pick, call `memory_write` with the winning style
-notes so the next session leans that way.
+Call `render_variations`; it will render each to a distinct file and return an
+`outputs` array. Let the user pick. After they pick, call `memory_write` with
+the winning style notes so the next session leans that way.
 
 # Memory protocol
 - Before stylistic decisions, call `memory_recall` with relevant keywords

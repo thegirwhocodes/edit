@@ -17,7 +17,10 @@ import pytest
 from edit.tools import (
     concat_clips,
     extract_audio,
+    make_contact_sheet,
     probe_video,
+    render_social_clip,
+    render_variations,
     transcode,
     trim_clip,
 )
@@ -177,3 +180,48 @@ def test_transcode_then_concat(sample_clip: Path, workdir: Path):
     p = _payload(out_c)
     assert p["status"] == "ok"
     assert joined.exists() and joined.stat().st_size > 0
+
+
+# ---------------------------------------------------------------------------
+# higher-level social render tools
+# ---------------------------------------------------------------------------
+
+def test_render_social_clip(sample_clip: Path, workdir: Path):
+    dst = workdir / "out" / "hair.mp4"
+    out = asyncio.run(render_social_clip.handler({
+        "source_path": str(sample_clip),
+        "output_path": str(dst),
+        "mode": "hair_vlog",
+        "variation": "safe",
+    }))
+    p = _payload(out)
+    assert p["status"] == "ok"
+    assert p["mode_label"] == "Hair Vlog"
+    assert dst.exists() and dst.stat().st_size > 0
+
+
+def test_render_variations(sample_clip: Path, workdir: Path):
+    out = asyncio.run(render_variations.handler({
+        "source_path": str(sample_clip),
+        "output_dir": str(workdir / "versions"),
+        "mode": "lifestyle",
+    }))
+    p = _payload(out)
+    assert p["status"] == "ok"
+    assert p["output_count"] == 3
+    assert {v["variation"] for v in p["outputs"]} == {"safe", "stretch", "wild"}
+    for item in p["outputs"]:
+        assert Path(item["output_path"]).exists()
+
+
+def test_make_contact_sheet(sample_clip: Path, workdir: Path):
+    dst = workdir / "sheet.jpg"
+    out = asyncio.run(make_contact_sheet.handler({
+        "source_path": str(sample_clip),
+        "output_path": str(dst),
+        "columns": 2,
+        "rows": 2,
+    }))
+    p = _payload(out)
+    assert p["status"] == "ok"
+    assert dst.exists() and dst.stat().st_size > 0

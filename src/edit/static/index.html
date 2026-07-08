@@ -182,6 +182,31 @@
   .drop .uploaded { color: var(--good); }
 
   .row { display: flex; gap: 8px; }
+  .modebar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .mode-btn {
+    min-height: 38px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 0 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .mode-btn:hover {
+    border-color: var(--accent);
+    background: var(--panel-2);
+    color: var(--text);
+  }
+  .mode-btn.active {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+    color: var(--text);
+  }
   input[type="text"], textarea {
     flex: 1;
     background: var(--panel);
@@ -211,6 +236,35 @@
     margin-top: 40px;
     font-style: italic;
   }
+  .outputs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .output-card {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px;
+    background: var(--panel-2);
+    color: var(--muted);
+    white-space: normal;
+    font-family: -apple-system, "SF Pro Text", system-ui, sans-serif;
+  }
+  .output-card strong {
+    display: block;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .output-card small {
+    display: block;
+    line-height: 1.35;
+  }
+  @media (max-width: 640px) {
+    .modebar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .row { flex-direction: column; }
+    button { min-height: 44px; }
+  }
 </style>
 </head>
 <body>
@@ -228,7 +282,7 @@
     <strong>Hey Naomi.</strong> Drop a clip, tell me what to do.
   </div>
   <div class="stream" id="stream"></div>
-  <div class="empty" id="empty">No edits yet. Try: <em>"trim the first 30 seconds into out/teaser.mp4"</em></div>
+  <div class="empty" id="empty">No edits yet. Try: <em>"upgrade this clip and give me three versions"</em></div>
 </main>
 
 <footer>
@@ -237,8 +291,14 @@
       <input type="file" id="file" accept="video/*" hidden />
       <span id="dropLabel"><strong>Drop a video</strong> or click to choose</span>
     </label>
+    <div class="modebar" role="group" aria-label="Creator mode">
+      <button type="button" class="mode-btn active" data-mode="hair_vlog">Hair Vlog</button>
+      <button type="button" class="mode-btn" data-mode="worship">Worship</button>
+      <button type="button" class="mode-btn" data-mode="talking_head">Talking Head</button>
+      <button type="button" class="mode-btn" data-mode="lifestyle">Lifestyle</button>
+    </div>
     <div class="row">
-      <input type="text" id="prompt" placeholder='e.g. "trim 0:05 to 0:30 into out/teaser.mp4"' autofocus />
+      <input type="text" id="prompt" placeholder='e.g. "upgrade this clip and give me three versions"' autofocus />
       <button id="send" type="submit">Run</button>
     </div>
   </form>
@@ -257,6 +317,7 @@ const composer = document.getElementById('composer');
 const greeting = document.getElementById('greeting');
 
 let uploadedPath = null;       // server-relative path of last upload
+let selectedMode = 'hair_vlog';
 const toolEls = new Map();     // tool_use_id → DOM element
 
 // --- Greeting (time-aware) ---
@@ -319,6 +380,13 @@ fileInput.addEventListener('change', e => {
   if (e.target.files[0]) uploadFile(e.target.files[0]);
 });
 
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectedMode = btn.dataset.mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b === btn));
+  });
+});
+
 async function uploadFile(file) {
   dropLabel.innerHTML = `Uploading <strong>${file.name}</strong>…`;
   const fd = new FormData();
@@ -344,7 +412,7 @@ composer.addEventListener('submit', async e => {
   promptInput.value = '';
 
   // Show the brief
-  addMsg('brief', uploadedPath ? `📎 ${uploadedPath}\n${text}` : text);
+  addMsg('brief', uploadedPath ? `${uploadedPath}\n${selectedMode} · ${text}` : `${selectedMode} · ${text}`);
 
   await runAgent(text, uploadedPath);
 
@@ -356,6 +424,7 @@ async function runAgent(prompt, file) {
   const fd = new FormData();
   fd.append('prompt', prompt);
   if (file) fd.append('file', file);
+  fd.append('mode', selectedMode);
 
   const resp = await fetch('/chat', { method: 'POST', body: fd });
   if (!resp.ok || !resp.body) {
@@ -469,6 +538,22 @@ function renderToolResult(payload) {
   // Render download link if output_path exists
   if (payload.output_path) {
     html += `<br><a class="download" href="/download?path=${encodeURIComponent(payload.output_path)}" target="_blank">↓ Download ${escapeHtml(payload.output_path.split('/').pop())}</a>`;
+  }
+  if (Array.isArray(payload.outputs) && payload.outputs.length) {
+    html += '<div class="outputs">';
+    for (const out of payload.outputs) {
+      const path = out.output_path || '';
+      const label = out.label || out.variation || 'Output';
+      const size = out.size_bytes ? `${(out.size_bytes / 1e6).toFixed(1)} MB` : '';
+      html += `
+        <div class="output-card">
+          <strong>${escapeHtml(label)}</strong>
+          <small>${escapeHtml(out.note || '')}</small>
+          <small>${escapeHtml(size)}</small>
+          ${path ? `<a class="download" href="/download?path=${encodeURIComponent(path)}" target="_blank">Download</a>` : ''}
+        </div>`;
+    }
+    html += '</div>';
   }
   return html;
 }

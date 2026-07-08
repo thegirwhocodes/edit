@@ -1,6 +1,6 @@
 # Ed.it
 
-Desktop AI video editor. Drop a clip, type the brief, and let a local agent cut the video.
+Desktop AI video editor. Drop a clip, type the brief, and let a local agent inspect, plan, and render the video.
 
 > Built on Claude Agent SDK + Gemini 2.5 Flash + FFmpeg, with a local SQLite
 > memory layer and an Electron shell. Everything runs on your machine — only
@@ -8,7 +8,7 @@ Desktop AI video editor. Drop a clip, type the brief, and let a local agent cut 
 
 ## Why it matters
 
-Ed.it is the video-editing version of a real tool-using assistant: it can inspect media, call FFmpeg, ask Gemini what is happening in a clip, remember taste, track cost, and render variations. It is built like a local creative workstation, not a prompt wrapper.
+Ed.it is the video-editing version of a real tool-using assistant: it can inspect media, make a contact sheet, call FFmpeg, ask Gemini what is happening in a clip, remember taste, track cost, and render finished variations. It is built like a local creative workstation, not a prompt wrapper.
 
 ## Quick start
 
@@ -31,6 +31,13 @@ edit-web --root ~/Movies/MyProject
 # open the URL it prints (default http://127.0.0.1:8765)
 ```
 
+Creator modes in the web UI steer open-ended work:
+
+- `hair_vlog` — warm beauty/vlog polish, clean skin, subtle sharpness.
+- `worship` — warm, gentle, music-first; captions should breathe.
+- `talking_head` — crisp Submagic-style social teaching energy.
+- `lifestyle` — bright, natural, relatable daily-life polish.
+
 ### Desktop (Electron)
 ```bash
 cd electron
@@ -50,6 +57,9 @@ quit, and stores projects under `~/Movies/Ed.it Projects/`.
 - `concat_clips` — demuxer concat
 - `extract_audio` — WAV (16 kHz mono for Whisper) or M4A
 - `transcode` — h264/h265/prores normalization
+- `make_contact_sheet` — quick JPG frame grid for visual inspection
+- `render_social_clip` — one finished 9:16 social-ready render
+- `render_variations` — Safe / Stretch / Wild finished renders in one call
 - `describe_video` — Gemini 2.5 Flash video understanding
 - `memory_recall` — keyword recall over SQLite + FTS5
 - `memory_write` — log a durable fact about the user
@@ -63,10 +73,10 @@ Resolve MCP server at `~/Social Media/davinci-resolve-mcp/`.
 recall. Schema: `user_profile`, `preferences` (supersedes chain),
 `projects`, `events`, `memory_items` (+ FTS5 mirror).
 
-**Variations pattern** — the system prompt tells the agent to produce three
-versions (Safe / Stretch / Wild) when the brief is open-ended, save them
-to `out/v1.mp4`, `out/v2.mp4`, `out/v3.mp4`, and write a memory note for
-whichever the user picks.
+**Variations pattern** — open-ended briefs now route to `render_variations`.
+The app renders Safe / Stretch / Wild files with built-in creator looks and
+the web UI shows a download card for each one. After Naomi picks a favorite,
+the agent writes a memory note so later edits lean that way.
 
 ## Roadmap status
 
@@ -76,7 +86,7 @@ whichever the user picks.
 | M2 | DaVinci Resolve MCP integration | ✅ wired (opt-in via `EDIT_USE_RESOLVE`) |
 | M3 | Electron desktop shell with streaming UI | ✅ shipped |
 | M4 | SQLite memory + recall/write tools | ✅ shipped |
-| M5 | 3-variation render pattern | ✅ prompt-level (rendering is the agent's job) |
+| M5 | 3-variation render pattern | ✅ shipped with `render_variations` |
 | M6 | Cost tracking, traces DB, signing config | ✅ shipped |
 
 ### M6 details
@@ -110,9 +120,9 @@ Application* certificate from the Apple Developer portal and swap the
 pytest tests/ -q
 ```
 
-13 tests cover the ffmpeg tools (happy + error paths) and the memory layer
-(profile round-trip, preference supersedes, FTS recall, core block, all
-four memory tools via the `@tool` decorators).
+16 tests cover the ffmpeg tools, the high-level render tools, contact sheets,
+and the memory layer (profile round-trip, preference supersedes, FTS recall,
+core block, all four memory tools via the `@tool` decorators).
 
 ## Architecture
 

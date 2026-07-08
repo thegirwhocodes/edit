@@ -92,8 +92,12 @@ def _render_message(msg) -> None:
             if cost is not None:
                 bits.append(f"cost ${cost:.4f}")
             if usage:
-                in_t = getattr(usage, "input_tokens", None) or usage.get("input_tokens") if isinstance(usage, dict) else None
-                out_t = getattr(usage, "output_tokens", None) or usage.get("output_tokens") if isinstance(usage, dict) else None
+                if isinstance(usage, dict):
+                    in_t = usage.get("input_tokens")
+                    out_t = usage.get("output_tokens")
+                else:
+                    in_t = getattr(usage, "input_tokens", None)
+                    out_t = getattr(usage, "output_tokens", None)
                 if in_t is not None and out_t is not None:
                     bits.append(f"{in_t} in / {out_t} out")
             console.print(f"\n[dim]── {' · '.join(bits)}[/dim]")

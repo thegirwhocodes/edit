@@ -27,7 +27,8 @@ HERE = Path(__file__).resolve().parent
 STATIC_DIR = HERE / "static"
 
 # Daily soft budget — UI surfaces a warning when approached, hard-stop in agent.
-BUDGET_USD = float(os.environ.get("EDIT_DAILY_BUDGET_USD", "5.0"))
+def _daily_budget_usd() -> float:
+    return float(os.environ.get("EDIT_DAILY_BUDGET_USD", "5.0"))
 
 
 def _load_env() -> None:
@@ -91,29 +92,47 @@ def create_app() -> FastAPI:
         root = _project_root()
         target = (root / path).resolve()
         # Sandbox: refuse anything outside the project root
-        if not str(target).startswith(str(root)):
+        try:
+            target.relative_to(root)
+        except ValueError:
             raise HTTPException(status_code=403, detail="path outside project root")
         if not target.exists() or not target.is_file():
             raise HTTPException(status_code=404, detail="file not found")
         return FileResponse(target, filename=target.name)
 
     @app.post("/chat")
-    async def chat(prompt: str = Form(...), file: str | None = Form(None)) -> StreamingResponse:
+    async def chat(
+        prompt: str = Form(...),
+        file: str | None = Form(None),
+        mode: str | None = Form(None),
+    ) -> StreamingResponse:
         """Stream the agent's tool calls, thinking, and text as SSE events."""
         # Soft budget check — return a 402 if today's spend already exceeds cap.
         today = traces.today_totals()
-        if today["total_cost"] >= BUDGET_USD:
+        budget_usd = _daily_budget_usd()
+        if today["total_cost"] >= budget_usd:
             async def deny():
                 yield _sse("error", {
-                    "message": f"Daily budget exceeded (${today['total_cost']:.2f} of ${BUDGET_USD:.2f}). "
+                    "message": f"Daily budget exceeded (${today['total_cost']:.2f} of ${budget_usd:.2f}). "
                                "Raise EDIT_DAILY_BUDGET_USD to continue.",
                     "type": "BudgetExceeded",
                 })
             return StreamingResponse(deny(), media_type="text/event-stream")
 
         full_brief = prompt
+        if mode:
+            full_brief = (
+                f"Creator mode: `{mode}`. Prefer this mode's built-in Ed.it style "
+                f"unless the user explicitly asks otherwise. {full_brief}"
+            )
         if file:
             full_brief = f"The user uploaded `{file}` (relative to the project root). {prompt}"
+            if mode:
+                full_brief = (
+                    f"The user uploaded `{file}` (relative to the project root). "
+                    f"Creator mode: `{mode}`. Prefer this mode's built-in Ed.it style "
+                    f"unless the user explicitly asks otherwise. {prompt}"
+                )
 
         return StreamingResponse(_stream_agent(full_brief), media_type="text/event-stream")
 
@@ -121,13 +140,14 @@ def create_app() -> FastAPI:
     async def budget() -> dict:
         today = traces.today_totals()
         lifetime = traces.session_totals()
+        budget_usd = _daily_budget_usd()
         return {
-            "cap_usd": BUDGET_USD,
+            "cap_usd": budget_usd,
             "today_usd": round(today["total_cost"], 4),
             "today_count": today["n"],
             "lifetime_usd": round(lifetime["total_cost"], 4),
             "lifetime_count": lifetime["n"],
-            "remaining_usd": round(max(0.0, BUDGET_USD - today["total_cost"]), 4),
+            "remaining_usd": round(max(0.0, budget_usd - today["total_cost"]), 4),
         }
 
     @app.get("/sessions")
@@ -178,6 +198,10 @@ async def _stream_agent(brief: str) -> AsyncIterator[str]:
                             payload = {"raw": repr(block)}
                         if isinstance(payload, dict) and payload.get("output_path"):
                             output_files.append(str(payload["output_path"]))
+                        if isinstance(payload, dict) and isinstance(payload.get("outputs"), list):
+                            for item in payload["outputs"]:
+                                if isinstance(item, dict) and item.get("output_path"):
+                                    output_files.append(str(item["output_path"]))
                         yield _sse("tool_result", {
                             "id": getattr(block, "tool_use_id", None),
                             "payload": payload,
