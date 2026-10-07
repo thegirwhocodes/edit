@@ -29,3 +29,10 @@ Thumbs.db
 # Electron
 electron/node_modules/
 electron/dist/
+*.bak
+*.bak[0-9]
+.env*
+!.env.example
+.npm-cache/
+.vercel/
+.aider*
